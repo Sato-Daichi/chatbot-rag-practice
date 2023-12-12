@@ -1,0 +1,7 @@
+openai==0.28.1
+langchain==0.0.316
+python-dotenv
+pdfminer.six
+tiktoken
+faiss-cpu
+streamlit
