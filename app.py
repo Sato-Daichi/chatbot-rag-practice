@@ -32,34 +32,39 @@ def preprocess():
     """
     RAGの前処理.
     """
-    print("start preprocess")
 
-    # pdfファイルの読み込み
-    loader = PDFMinerLoader("./document/gk.pdf")
-    raw_documents = loader.load()
-    print()
+    if os.path.exists(FAISS_DB_DIR):
+        print("load vector store")
+        _faiss_db = FAISS.load(FAISS_DB_DIR)
+    else:
+        print("start preprocess")
+        # pdfファイルの読み込み
+        loader = PDFMinerLoader("./document/ms_ad/car_insurance.pdf")
+        raw_documents = loader.load()
 
-    # チャンク分け
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=50)
-    documents = text_splitter.split_documents(raw_documents)
+        # チャンク分け
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=50)
+        documents = text_splitter.split_documents(raw_documents)
 
-    for document in documents:
-        document.page_content = _modify_newlines(document.page_content).replace(" ", "").replace("　", "")
+        #  テキストの前処理
+        for document in documents:
+            document.page_content = _modify_newlines(document.page_content).replace(" ", "").replace("　", "")
 
-    # ベクトルストアの構築
-    embeddings = OpenAIEmbeddings()
-    _faiss_db = FAISS.from_documents(documents=documents, embedding=embeddings)
+        # ベクトルストアの構築
+        embeddings = OpenAIEmbeddings()
+        _faiss_db = FAISS.from_documents(documents=documents, embedding=embeddings)
+        _faiss_db.save_local(FAISS_DB_DIR)
+        print("finish preprocess")
 
     # モデル
     model = ChatOpenAI(model="gpt-4", temperature=0, client=openai.ChatCompletion)
 
     # QAモデル
     _qa = RetrievalQA.from_chain_type(llm=model, chain_type="stuff", retriever=_faiss_db.as_retriever())
-
-    print("finish preprocess")
     return _faiss_db, _qa
 
 
+# 前処理
 faiss_db, qa = preprocess()
 
 st.title("三井住友海上 保険チャットボット")
