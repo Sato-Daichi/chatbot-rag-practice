@@ -12,7 +12,7 @@ from langchain.vectorstores import FAISS
 
 load_dotenv()
 openai.api_key = os.environ["OPENAI_API_KEY"]
-FAISS_DB_DIR = "vector_store"
+FAISS_DB_DIR = "vectorstore"
 
 
 def _modify_newlines(text):
@@ -33,9 +33,11 @@ def preprocess():
     RAGの前処理.
     """
 
+    embeddings = OpenAIEmbeddings()
+
     if os.path.exists(FAISS_DB_DIR):
         print("load vector store")
-        _faiss_db = FAISS.load(FAISS_DB_DIR)
+        _faiss_db = FAISS.load_local(FAISS_DB_DIR, embeddings=embeddings)
     else:
         print("start preprocess")
         # pdfファイルの読み込み
@@ -51,7 +53,6 @@ def preprocess():
             document.page_content = _modify_newlines(document.page_content).replace(" ", "").replace("　", "")
 
         # ベクトルストアの構築
-        embeddings = OpenAIEmbeddings()
         _faiss_db = FAISS.from_documents(documents=documents, embedding=embeddings)
         _faiss_db.save_local(FAISS_DB_DIR)
         print("finish preprocess")
